@@ -94,7 +94,7 @@ class EmailField(CharField):
     def __set__(self, instance: Self, value: Any) -> None:
         super().__set__(instance, value)
         if "@" not in value:
-            raise ValueError(f"{value} isn't valid email")
+            raise ValueError(f"{value} isn't valid email. {value} doesn't have @")
 
         instance.__dict__[self.name] = value
 
@@ -102,13 +102,20 @@ class EmailField(CharField):
 class PhoneField(Field):
     def __set__(self, instance: Self, value: Any) -> None:
         if not isinstance(value, str) or not isinstance(value, int):
-            raise ValueError(f"{value} can not be phone number")
+            raise ValueError(
+                f"Invalid type for phone number. {value} is {type(value)}, not str or int"
+            )
 
         if isinstance(value, int):
             value = str(value)
 
-        if len(value) != 11 or int(value[0]) != 7:
-            raise ValueError(f"Invalid phone number: {value}")
+        if len(value) != 11:
+            raise ValueError(
+                f"Invalid phone number: {value}. Phone must have 11 digits."
+            )
+
+        if int(value[0]) != 7:
+            raise ValueError(f"Invalid phone number: {value}. Phone must start with 7.")
 
         instance.__dict__[self.name] = value
 
@@ -133,7 +140,9 @@ class BirthDayField(Field):
         )
         _difference = round((_current_date - value).days / 365.25, 0)
         if _difference > 70.0:
-            raise ValueError(f"Invalid birthday: {value}")
+            raise ValueError(
+                f"Invalid birthday: {value}. Difference between current date is too long."
+            )
 
         instance.__dict__[self.name] = value
 
@@ -141,14 +150,14 @@ class BirthDayField(Field):
 class GenderField(Field):
     def __set__(self, instance: Self, value: Any) -> None:
         if not isinstance(value, int) or value not in [0, 1, 2]:
-            raise ValueError(f"Invalid gender: {value}")
+            raise ValueError(f"Invalid gender: {value}. Gender must be 0, 1 or 2.")
         instance.__dict__[self.name] = value
 
 
 class ClientIDsField(Field):
     def __set__(self, instance: Self, value: Any) -> None:
         if not isinstance(value, list):
-            raise ValueError(f"Invalid clients ids: {value}")
+            raise ValueError(f"Invalid clients ids: {value}. Clients ids must be list.")
         instance.__dict__[self.name] = value
 
 
