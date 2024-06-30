@@ -12,6 +12,9 @@ from argparse import ArgumentParser
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any, Dict, List, Self, Type
 
+from api_scoring.scoring import get_score, get_interests
+
+
 SALT = "Otus"
 ADMIN_LOGIN = "admin"
 ADMIN_SALT = "42"
@@ -47,7 +50,7 @@ class RequestORM(type):
 
         for k, v in namespace.items():
             if isinstance(v, Field):
-                namespace[k] = k
+                namespace[k] = v
                 if v.required:  # type: ignore
                     required_attr.append(k)
                 if not v.nullable:  # type: ignore
@@ -93,6 +96,7 @@ class ArgumentsField(Field):
 class EmailField(CharField):
     def __set__(self, instance: Self, value: Any) -> None:
         super().__set__(instance, value)
+        # TODO переписать на регулярку
         if "@" not in value:
             raise ValueError(f"{value} isn't valid email. {value} doesn't have @")
 
@@ -101,7 +105,7 @@ class EmailField(CharField):
 
 class PhoneField(Field):
     def __set__(self, instance: Self, value: Any) -> None:
-        if not isinstance(value, str) or not isinstance(value, int):
+        if not isinstance(value, str) and not isinstance(value, int):
             raise ValueError(
                 f"Invalid type for phone number. {value} is {type(value)}, not str or int"
             )
@@ -162,9 +166,9 @@ class ClientIDsField(Field):
 
 
 class Request(metaclass=RequestORM):
-    def __init__(self, _json: Any):
-        if _json is not None:
-            dict_attr: Dict[str, Any] = json.loads(_json)
+    def __init__(self, dict_attr: Dict):
+        # if _json is not None:
+        #     dict_attr: Dict[str, Any] = json.loads(_json)
         for _attr in self.required_attr:  # type: ignore
             if _attr not in dict_attr.keys():
                 raise ValueError(
@@ -181,12 +185,12 @@ class Request(metaclass=RequestORM):
             setattr(self, name, field)
 
 
-class ClientsInterestsRequest(object):
+class ClientsInterestsRequest(Request):
     client_ids = ClientIDsField(required=True)
     date = DateField(required=False, nullable=True)
 
 
-class OnlineScoreRequest(object):
+class OnlineScoreRequest(Request):
     first_name = CharField(required=False, nullable=True)
     last_name = CharField(required=False, nullable=True)
     email = EmailField(required=False, nullable=True)
@@ -195,7 +199,7 @@ class OnlineScoreRequest(object):
     gender = GenderField(required=False, nullable=True)
 
 
-class MethodRequest(object):
+class MethodRequest(Request):
     account = CharField(required=False, nullable=True)
     login = CharField(required=True, nullable=True)
     token = CharField(required=True, nullable=True)
@@ -219,9 +223,61 @@ def check_auth(request: Any) -> bool:
     return digest == request.token
 
 
+# TODO сделать проще
 def method_handler(request: Any, ctx: Any, store: Any) -> tuple:
-    response, code = None, None
-    return response, code
+    try:
+        _method_request = MethodRequest(request.get("body"))
+    except ValueError as e:
+        _message = str(e)
+        logging.error(_message)
+        return json.dumps(_message), BAD_REQUEST
+
+    # if not check_auth(_request):
+    #     logging.info("Invalid authentication.")
+    #     return "", FORBIDDEN
+    _arg_dict = request.get("body").get("arguments")
+
+    _online_score_requst, _clients_interests_request = None, None
+    try:
+        if _arg_dict.get("client_ids", None) is None:
+            _online_score_requst = OnlineScoreRequest(_arg_dict)
+        else:
+            _clients_interests_request = ClientsInterestsRequest(_arg_dict)
+    except ValueError as e:
+        _message = str(e)
+        logging.error(_message)
+        return json.dumps(_message), BAD_REQUEST
+
+    if _clients_interests_request:
+        _responce_dict = dict()
+        for _client in _clients_interests_request.client_ids:  # type: ignore
+            _responce_dict[_client] = get_interests()
+        ctx["nclients"] = len(_clients_interests_request.client_ids)  # type: ignore
+        return _responce_dict, OK
+
+    if _online_score_requst:
+        _non_nullable_args = 0
+
+        if set(("phone", "email")).issubset(_arg_dict.keys()):
+            _non_nullable_args += 2
+        if set(("first_name", "last_name")).issubset(_arg_dict.keys()):
+            _non_nullable_args += 2
+        if set(("gender", "birthday")).issubset(_arg_dict.keys()):
+            _non_nullable_args += 2
+        ctx["has"] = _non_nullable_args
+        if _non_nullable_args == 0:
+            logging.error(
+                "Invalid arguments. Must be pass phone-email or first_name-last_name or gender-birthday"
+            )
+            return (
+                "Invalid arguments. Must be pass phone-email or first_name-last_name or gender-birthday",
+                INVALID_REQUEST,
+            )
+        if _method_request.is_admin:
+            return {"score": 42}, OK
+        else:
+            return {"score": get_score(_online_score_requst)}, OK
+    return "Unknown error", INTERNAL_ERROR
 
 
 class MainHTTPHandler(BaseHTTPRequestHandler):
@@ -237,9 +293,10 @@ class MainHTTPHandler(BaseHTTPRequestHandler):
         request = None
         try:
             data_string = self.rfile.read(int(self.headers["Content-Length"]))
-            request = json.loads(data_string)
+            request = json.loads(data_string.decode("utf8"))
         # TODO прописать конкретные исключения
-        except Exception:
+        except Exception as e:
+            logging.info(e)
             code = BAD_REQUEST
 
         if request:

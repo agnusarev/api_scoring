@@ -1,30 +1,23 @@
 import random
-from datetime import datetime
-from typing import Any, Union, List
+from typing import Any, List
 
 
 def get_score(
-    store: float,
-    phone: str,
-    email: str,
-    birthday: Union[datetime, None] = None,
-    gender: Union[int, None] = None,
-    first_name: Union[str, None] = None,
-    last_name: Union[str, None] = None,
+    _online_score_requst: Any
 ) -> float:
     score = 0.0
-    if phone:
+    if _online_score_requst.phone:
         score += 1.5
-    if email:
+    if _online_score_requst.email:
         score += 1.5
-    if birthday and gender:
+    if _online_score_requst.birthday and _online_score_requst.gender:
         score += 1.5
-    if first_name and last_name:
+    if _online_score_requst.first_name and _online_score_requst.last_name:
         score += 0.5
     return score
 
 
-def get_interests(store: Any, cid: Any) -> List[str]:
+def get_interests() -> List[str]:
     interests = [
         "cars",
         "pets",
