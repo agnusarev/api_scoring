@@ -13,7 +13,6 @@ linting:
 mypy:
 	poetry run mypy src
 
-# TODO исправить naming
-.PHONY: api_scoring
-api_scoring:
-	poetry run python src/api_scoring/api_scoring.py
+.PHONY: run_server
+run_server:
+	poetry run python src/api_scoring/api.py

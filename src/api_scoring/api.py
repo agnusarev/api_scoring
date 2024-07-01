@@ -54,7 +54,6 @@ def check_auth(request: Any) -> bool:
         digest = hashlib.sha512(
             (request.account + request.login + SALT).encode("utf-8")
         ).hexdigest()
-    logging.info(f"{digest}")
     return digest == request.token
 
 
@@ -121,8 +120,7 @@ class MainHTTPHandler(BaseHTTPRequestHandler):
         try:
             data_string = self.rfile.read(int(self.headers["Content-Length"]))
             request = json.loads(data_string.decode("utf8"))
-        # TODO прописать конкретные исключения
-        except Exception as e:
+        except UnicodeDecodeError as e:
             logging.exception(e)
             code = BAD_REQUEST
 

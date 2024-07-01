@@ -1,7 +1,9 @@
 import datetime
+import re
 from typing import Any, Dict, List, Self, Type
 
 ADMIN_LOGIN = "admin"
+EMAIL = r"[^@]+@[^@]+\.[^@]+"
 
 
 class RequestORM(type):
@@ -59,9 +61,8 @@ class ArgumentsField(Field):
 class EmailField(CharField):
     def __set__(self, instance: Self, value: Any) -> None:
         super().__set__(instance, value)
-        # TODO переписать на регулярку
-        if "@" not in value:
-            raise ValueError(f"{value} isn't valid email. {value} doesn't have @")
+        if not re.match(EMAIL, value):
+            raise ValueError(f"{value} isn't valid email.")
 
         instance.__dict__[self.name] = value
 
