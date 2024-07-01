@@ -1,10 +1,10 @@
 import random
-from typing import Any, List
+from typing import List
+
+from api_scoring.models import OnlineScoreRequest
 
 
-def get_score(
-    _online_score_requst: Any
-) -> float:
+def get_score(_online_score_requst: OnlineScoreRequest) -> float:
     score = 0.0
     if _online_score_requst.phone:
         score += 1.5
