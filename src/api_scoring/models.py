@@ -1,6 +1,6 @@
 import datetime
 import re
-from typing import Any, Dict, List, Self, Type
+from typing import Any, Dict, List, Self, Type, Union
 
 ADMIN_LOGIN = "admin"
 EMAIL = r"[^@]+@[^@]+\.[^@]+"
@@ -35,11 +35,13 @@ class Field:
     def __set_name__(self, cls: Self, name: str) -> None:
         self.name = name
 
-    def __get__(self, instance: Any, owner: Any) -> Self:
+    def __get__(self, instance: Any, owner: Any) -> Union[Self, None]:
         if instance is None:
             return self
-        else:
+        try:
             return instance.__dict__[self.name]
+        except KeyError:
+            return None
 
 
 class CharField(Field):
