@@ -12,13 +12,12 @@ from argparse import ArgumentParser
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any
 
-from api_scoring.scoring import get_score, get_interests
 from api_scoring.models import (
+    ClientsInterestsRequest,
     MethodRequest,
     OnlineScoreRequest,
-    ClientsInterestsRequest,
 )
-
+from api_scoring.scoring import get_interests, get_score
 
 SALT = "Otus"
 ADMIN_SALT = "42"
@@ -45,16 +44,18 @@ GENDERS = {
 }
 
 
-def check_auth(request: Any) -> bool:
+def get_token(request: MethodRequest) -> str:
     if request.is_admin:
-        digest = hashlib.sha512(
+        return hashlib.sha512(
             (datetime.datetime.now().strftime("%Y%m%d%H") + ADMIN_SALT).encode("utf-8")
         ).hexdigest()
-    else:
-        digest = hashlib.sha512(
-            (request.account + request.login + SALT).encode("utf-8")
-        ).hexdigest()
-    return digest == request.token
+    _acc = str(request.account) if request.account else ""
+    _login = str(request.login) if request.login else ""
+    return hashlib.sha512((_acc + _login + SALT).encode("utf-8")).hexdigest()
+
+
+def check_auth(request: MethodRequest) -> bool:
+    return get_token(request) == request.token
 
 
 def method_handler(request: Any, ctx: Any, store: Any) -> tuple:
