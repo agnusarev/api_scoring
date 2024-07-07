@@ -84,11 +84,17 @@ def method_handler(request: Any, ctx: Any, store: Any) -> tuple:
         return json.dumps(_message), BAD_REQUEST
 
     if _clients_interests_request:
-        _responce_dict = dict()
-        for _client in _clients_interests_request.client_ids:  # type: ignore
-            _responce_dict[_client] = get_interests()
+        # _responce_dict = dict()
+        # for _client in _clients_interests_request.client_ids:  # type: ignore
+        #     try:
+        #         _responce_dict[_client] = get_interests(_client)
+        #     except NetworkError as e:
+        #         logging.exception(e)
+        #         return json.dumps("Can not connect with tarantool."), INTERNAL_ERROR
+        # ctx["nclients"] = len(_clients_interests_request.client_ids)  # type: ignore
         ctx["nclients"] = len(_clients_interests_request.client_ids)  # type: ignore
-        return _responce_dict, OK
+        _responce, _code = get_interests(_clients_interests_request)
+        return _responce, _code
 
     if _online_score_requst:
         ctx["has"] = _online_score_requst.score

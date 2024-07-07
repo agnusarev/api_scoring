@@ -8,6 +8,7 @@ packages = [{include = "api_scoring", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.12"
+tarantool = "^1.2.0"
 
 
 [tool.poetry.group.dev.dependencies]

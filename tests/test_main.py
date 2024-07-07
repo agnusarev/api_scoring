@@ -2,6 +2,7 @@ import pytest
 
 from api_scoring.api import FORBIDDEN, OK, get_token, method_handler
 from api_scoring.models import MethodRequest
+from unittest.mock import Mock
 
 
 @pytest.mark.parametrize(
@@ -59,7 +60,7 @@ def test_online_score(_request: dict, _expected: str, _code: int) -> None:
 
 
 @pytest.mark.parametrize(
-    "_request,_code",
+    "_request,_code,_returns",
     [
         pytest.param(
             {
@@ -72,12 +73,15 @@ def test_online_score(_request: dict, _expected: str, _code: int) -> None:
                 }
             },
             OK,
+            ["cats", "dogs", "otus", "programming"],
             id="test_main_autentification",
         ),
     ],
 )
-def test_clients_interests(_request: dict, _code: int) -> None:
+def test_clients_interests(_request: dict, _code: int, _returns: list) -> None:
     _request["body"]["token"] = get_token(MethodRequest(_request["body"]))
+    method_handler = Mock()
+    method_handler.return_value = _returns, OK
     _exp, code = method_handler(_request, dict(), "")
     assert code == _code
     assert len(_request["body"]["arguments"]["client_ids"]) == len(_exp)
