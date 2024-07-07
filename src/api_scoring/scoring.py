@@ -1,15 +1,10 @@
 import hashlib
-
 import json
 import logging
-from tarantool.error import NetworkError
 
-from api_scoring.models import OnlineScoreRequest, ClientsInterestsRequest
+from api_scoring.models import ClientsInterestsRequest, OnlineScoreRequest
 from api_scoring.score import cache_get, cache_set, tarantool_get_interests
-
-class GetInterestsException(NetworkError):
-    def __init__(self, msg: str) -> None:
-        super().__init__(msg)
+from tarantool.error import NetworkError
 
 
 def get_key(_online_score_requst: OnlineScoreRequest) -> str:
