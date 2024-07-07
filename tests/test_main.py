@@ -73,7 +73,7 @@ def test_online_score(_request: dict, _expected: str, _code: int) -> None:
                 }
             },
             OK,
-            ["cats", "dogs", "otus", "programming"],
+            [["cats"], ["dogs"], ["otus"], ["programming"]],
             id="test_main_autentification",
         ),
     ],
